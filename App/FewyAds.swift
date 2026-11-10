@@ -12,6 +12,24 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
     private var loadedOnce = false
     @Published private(set) var diagnostic = "Waiting to check consent"
 
+    #if DEBUG
+    @Published var inspectorError = false
+    @Published private(set) var inspectorErrorMessage = ""
+
+    func openAdInspector() {
+        // The SDK automatically treats iOS simulators as test devices.
+        // Present only: preserve UMP consent and the existing ad request history.
+        MobileAds.shared.presentAdInspector(from: nil) { [weak self] error in
+            guard let error else { return }
+            Task { @MainActor [weak self] in
+                let failure = error as NSError
+                self?.inspectorErrorMessage = "\(failure.domain) (\(failure.code)): \(failure.localizedDescription)\n\(failure.userInfo)"
+                self?.inspectorError = true
+            }
+        }
+    }
+    #endif
+
     private func status(_ message: String) {
         #if DEBUG
         diagnostic = message
@@ -96,6 +114,12 @@ struct FewyAdSection: View {
             }
             #if DEBUG
             Text("Ad test: " + ads.diagnostic).font(.footnote).foregroundStyle(.secondary)
+            Button("Open Ad Inspector") { ads.openAdInspector() }
+                .alert("Couldn’t open Ad Inspector", isPresented: $ads.inspectorError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(ads.inspectorErrorMessage)
+                }
             #endif
             Color.clear.frame(height: 0).listRowInsets(EdgeInsets()).listRowSeparator(.hidden)
                 .accessibilityHidden(true)
