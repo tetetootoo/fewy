@@ -65,4 +65,3 @@ schemes:
         Fewy: all
     run:
       config: Debug
-      storeKitConfiguration: App/Studio.storekit

@@ -70,7 +70,6 @@ struct StoryCanvas: View {
 }
 
 struct EditionEditor: View {
-    @EnvironmentObject private var studio: Studio
     @Environment(\.dismiss) private var dismiss
     let notes: [Note]
     let date: Date
@@ -80,7 +79,6 @@ struct EditionEditor: View {
     @State private var selected: UUID?
     @State private var paper = Paper.lemon
     @State private var credit = true
-    @State private var paywall = false
     @State private var picker = false
     @State private var selection = false
     @State private var export: URL?
@@ -88,8 +86,8 @@ struct EditionEditor: View {
     private var selectedIndex: Int? { stickers.firstIndex { $0.id == selected } }
     private var chosen: [Note] { notes.filter { included.contains($0.id) } }
     private var canvas: StoryCanvas {
-        StoryCanvas(title: title, notes: chosen, date: date, paper: studio.unlocked ? paper : .lemon,
-                    credit: !studio.unlocked || credit, stickers: stickers)
+        StoryCanvas(title: title, notes: chosen, date: date, paper: paper,
+                    credit: credit, stickers: stickers)
     }
 
     var body: some View {
@@ -100,8 +98,8 @@ struct EditionEditor: View {
                     GeometryReader { geometry in
                         let scale = geometry.size.width / 360
                         ZStack {
-                            StoryCanvas(title: title, notes: chosen, date: date, paper: studio.unlocked ? paper : .lemon,
-                                        credit: !studio.unlocked || credit, stickers: [])
+                            StoryCanvas(title: title, notes: chosen, date: date, paper: paper,
+                                        credit: credit, stickers: [])
                                 .scaleEffect(scale)
                                 .frame(width: geometry.size.width, height: geometry.size.height)
                             ForEach($stickers) { $sticker in
@@ -143,12 +141,11 @@ struct EditionEditor: View {
                     Menu("Background · \(paper.rawValue)") {
                         ForEach(Paper.allCases) { option in
                             Button(option.rawValue) {
-                                if studio.unlocked || option == .lemon { paper = option }
-                                else { paywall = true }
+                                paper = option
                             }
                         }
                     }
-                    if studio.unlocked { Toggle("Show Fewy credit", isOn: $credit) }
+                    Toggle("Show Fewy credit", isOn: $credit)
                     Button("Prepare Story", systemImage: "square.and.arrow.up", action: render)
                         .buttonStyle(.borderedProminent).disabled(chosen.isEmpty)
                     if let export {
@@ -164,9 +161,7 @@ struct EditionEditor: View {
             .onChange(of: included) { _, _ in clearExport() }
             .onChange(of: paper) { _, _ in clearExport() }
             .onChange(of: credit) { _, _ in clearExport() }
-            .onChange(of: studio.unlocked) { _, _ in clearExport() }
             .onChange(of: stickers.map { "\($0.id):\($0.position):\($0.size):\($0.angle)" }) { _, _ in clearExport() }
-            .sheet(isPresented: $paywall) { StudioPaywall(studio: studio) }
             .sheet(isPresented: $selection) {
                 NavigationStack {
                     List(notes) { note in
@@ -194,19 +189,9 @@ struct EditionEditor: View {
                             Button { add(symbol) } label: { Text(symbol).font(.largeTitle) }
                         }
                     }
-                    if studio.unlocked {
-                        HStack {
-                            ForEach(["🪲", "🪼", "🦢", "🎱", "🪭"], id: \.self) { symbol in
-                                Button { add(symbol) } label: { Text(symbol).font(.largeTitle) }
-                            }
-                        }
-                    } else {
-                        Button("Explore Studio stickers") {
-                            picker = false
-                            Task { @MainActor in
-                                try? await Task.sleep(for: .milliseconds(400))
-                                paywall = true
-                            }
+                    HStack {
+                        ForEach(["🪲", "🪼", "🦢", "🎱", "🪭"], id: \.self) { symbol in
+                            Button { add(symbol) } label: { Text(symbol).font(.largeTitle) }
                         }
                     }
                 }.padding(24).presentationDetents([.medium])

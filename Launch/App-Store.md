@@ -15,7 +15,7 @@ Fewy is a tiny notes app for funny overheard lines, ideas on the move, and the l
 • Find your notes by day.  
 • Pick up to three notes, give the edition a title, and add stickers wherever you like.  
 • Share a vertical Story image or save it for yourself.  
-• Unlock Studio once for more stickers, more backgrounds, and the option to hide the export credit.
+• Enjoy all Studio stickers, backgrounds, and the option to hide the export credit without a purchase.
 
 Start with the best thing someone said today.
 

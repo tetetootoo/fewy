@@ -2,14 +2,12 @@ import SwiftUI
 import WidgetKit
 
 @main struct FewyApp: App {
-    @StateObject private var studio = Studio()
     var body: some Scene {
-        WindowGroup { NotesScreen().environmentObject(studio).tint(.primary) }
+        WindowGroup { NotesScreen().tint(.primary) }
     }
 }
 
 struct NotesScreen: View {
-    @EnvironmentObject private var studio: Studio
     @State private var notes = Notes.load()
     @State private var selectedDay = Date()
     @State private var draft = ""
@@ -95,7 +93,6 @@ struct NotesScreen: View {
         .background(Color(uiColor: .secondarySystemBackground).ignoresSafeArea())
         .sheet(isPresented: $edition) { EditionEditor(notes: daily, date: selectedDay) }
         .sheet(isPresented: $styles) { StylesGallery() }
-        .task { await studio.refresh() }
         .onChange(of: selectedDay) { _, _ in
             if editing != nil { editing = nil; draft = "" }
         }
@@ -140,52 +137,24 @@ struct NotesScreen: View {
     }
 }
 
-struct Sponsor: Decodable {
-    let name: String
-    let headline: String
-    let link: URL
-
-    static var configured: Self? {
-        guard let url = Bundle.main.url(forResource: "Sponsor", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let sponsor = try? JSONDecoder().decode(Self.self, from: data),
-              sponsor.link.scheme == "https", sponsor.link.host != nil else { return nil }
-        return sponsor
-    }
-}
-
 struct StylesGallery: View {
-    @EnvironmentObject private var studio: Studio
     @Environment(\.dismiss) private var dismiss
-    @State private var paywall = false
 
     var body: some View {
         NavigationStack {
             List {
                 Section("Editions") {
                     Label("Lemon Paper", systemImage: "circle.fill").foregroundStyle(.primary)
-                    Button { paywall = true } label: {
-                        Label(studio.unlocked ? "Studio unlocked" : "Explore Studio", systemImage: "sparkles")
-                    }.disabled(studio.unlocked)
+                    Label("Studio included", systemImage: "sparkles")
                 }
-                if !studio.unlocked {
-                    FewyAdSection()
-                }
-                if let sponsor = Sponsor.configured, !studio.unlocked {
-                    Section {
-                        Link(destination: sponsor.link) {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("SPONSORED").font(.caption2.monospaced()).foregroundStyle(.secondary)
-                                Text(sponsor.headline).font(.headline)
-                                Text(sponsor.name).font(.subheadline)
-                            }
-                        }
-                    }
-                }
+                FewyAdSection(adsEnabled: true)
+            }
+            .task {
+                FewyAds.shared.setAdsEnabled(true)
+                await FewyAds.shared.prepare()
             }
             .navigationTitle("Styles")
             .toolbar { Button("Done") { dismiss() } }
-            .sheet(isPresented: $paywall) { StudioPaywall(studio: studio) }
         }
     }
 }

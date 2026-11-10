@@ -1,0 +1,43 @@
+Ablehnung nach Reset
+[Fewy Ads] Checking UMP consent
+[Fewy Consent Test] P1=C1/LI0 P2=C0/LI1 P3=C0/LI0 P4=C0/LI0 P7=C0/LI1 P9=C0/LI1 P10=C0/LI1, Google LI=1, restrictions=[:], gate=blocked, SDK started in process=false
+[Fewy Consent Test] GDPR applies=1, TCF string present=true, Purpose 1 consent=1, Google vendor 755 consent=0, canRequestAds=true
+[Fewy Consent Test] Request gate: canRequestAds=true
+[Fewy Ads] Native request blocked by consent; Ads SDK not started from this path
+[Fewy Consent Test] Reset UMP consent state
+[Fewy Ads] Checking UMP consent
+[Fewy Consent Test] P1=C0/LI0 P2=C0/LI1 P3=C0/LI0 P4=C0/LI0 P7=C0/LI1 P9=C0/LI1 P10=C0/LI1, Google LI=1, restrictions=[:], gate=blocked, SDK started in process=false
+[Fewy Consent Test] GDPR applies=1, TCF string present=true, Purpose 1 consent=0, Google vendor 755 consent=0, canRequestAds=true
+[Fewy Consent Test] Request gate: canRequestAds=true
+[Fewy Ads] Native request blocked by consent; Ads SDK not started from this path
+
+Neustart nach Ablehnung, Zustimmung, Widerruf, NPA
+[Fewy Ads] Checking UMP consent
+[Fewy Consent Test] P1=C0/LI0 P2=C0/LI1 P3=C0/LI0 P4=C0/LI0 P7=C0/LI1 P9=C0/LI1 P10=C0/LI1, Google LI=1, restrictions=[:], gate=blocked, SDK started in process=false
+[Fewy Consent Test] GDPR applies=1, TCF string present=true, Purpose 1 consent=0, Google vendor 755 consent=0, canRequestAds=true
+[Fewy Consent Test] Request gate: canRequestAds=true
+[Fewy Ads] Native request blocked by consent; Ads SDK not started from this path
+[Fewy Consent Test] P1=C1/LI0 P2=C1/LI1 P3=C1/LI0 P4=C1/LI0 P7=C1/LI1 P9=C1/LI1 P10=C1/LI1, Google LI=1, restrictions=[:], gate=TCF personalized eligible, SDK started in process=false
+[Fewy Consent Test] GDPR applies=1, TCF string present=true, Purpose 1 consent=1, Google vendor 755 consent=1, canRequestAds=true
+[Fewy Consent Test] Request gate: canRequestAds=true
+[Fewy Ads] Starting Ads SDK: TCF personalized eligible
+[Fewy Ads] Requesting native ad
+[Fewy Ads] Native ad loaded
+[Fewy Consent Test] P1=C0/LI0 P2=C0/LI0 P3=C0/LI0 P4=C0/LI0 P7=C0/LI1 P9=C0/LI1 P10=C0/LI1, Google LI=1, restrictions=[:], gate=blocked, SDK started in process=true
+[Fewy Consent Test] GDPR applies=1, TCF string present=true, Purpose 1 consent=0, Google vendor 755 consent=0, canRequestAds=true
+[Fewy Consent Test] Request gate: canRequestAds=true
+[Fewy Ads] Native request blocked by consent; Ads SDK not started from this path
+[Fewy Consent Test] P1=C1/LI0 P2=C1/LI1 P3=C0/LI0 P4=C0/LI0 P7=C1/LI1 P9=C1/LI1 P10=C1/LI1, Google LI=1, restrictions=[:], gate=TCF non-personalized eligible, SDK started in process=true
+[Fewy Consent Test] GDPR applies=1, TCF string present=true, Purpose 1 consent=1, Google vendor 755 consent=1, canRequestAds=true
+[Fewy Consent Test] Request gate: canRequestAds=true
+[Fewy Ads] Requesting native ad
+[Fewy Ads] Native ad loaded
+
+Finaler Debug-Build: gespeicherte NPA-Auswahl und Styles erneut geöffnet
+[Fewy Ads] Checking UMP consent
+[Fewy Consent Test] P1=C1/LI0 P2=C1/LI1 P3=C0/LI0 P4=C0/LI0 P7=C1/LI1 P9=C1/LI1 P10=C1/LI1, Google LI=1, restrictions=[:], gate=TCF non-personalized eligible, SDK started in process=false
+[Fewy Consent Test] GDPR applies=1, TCF string present=true, Purpose 1 consent=1, Google vendor 755 consent=1, canRequestAds=true
+[Fewy Consent Test] Request gate: canRequestAds=true
+[Fewy Ads] Starting Ads SDK: TCF non-personalized eligible
+[Fewy Ads] Requesting native ad
+[Fewy Ads] Native ad loaded
