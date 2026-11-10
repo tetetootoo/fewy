@@ -12,6 +12,37 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
     private var loadedOnce = false
     @Published private(set) var diagnostic = "Waiting to check consent"
 
+    #if DEBUG && targetEnvironment(simulator)
+    @Published private(set) var consentTestBusy = false
+
+    func resetConsentTest() async {
+        guard !consentTestBusy else { return }
+        ad = nil
+        loader?.delegate = nil
+        loader = nil
+        ConsentInformation.shared.reset()
+        showPrivacyOptions = false
+        loadedOnce = false
+        print("[Fewy Consent Test] Reset UMP consent state")
+        await prepare()
+    }
+
+    private func logConsentTest() {
+        let defaults = UserDefaults.standard
+        func bit(_ key: String, at position: Int) -> String {
+            guard let value = defaults.string(forKey: key), value.count >= position else {
+                return "unavailable"
+            }
+            let flag = value[value.index(value.startIndex, offsetBy: position - 1)]
+            return flag == "0" || flag == "1" ? String(flag) : "unavailable"
+        }
+        let gdpr = (defaults.object(forKey: "IABTCF_gdprApplies") as? NSNumber)?.stringValue ?? "unavailable"
+        let hasTCF = !(defaults.string(forKey: "IABTCF_TCString") ?? "").isEmpty
+        // TCF purpose/vendor IDs use one-based positions. Never log the full TC string.
+        print("[Fewy Consent Test] GDPR applies=\(gdpr), TCF string present=\(hasTCF), Purpose 1 consent=\(bit("IABTCF_PurposeConsents", at: 1)), Google vendor 755 consent=\(bit("IABTCF_VendorConsents", at: 755)), canRequestAds=\(ConsentInformation.shared.canRequestAds)")
+    }
+    #endif
+
     #if DEBUG
     @Published var inspectorError = false
     @Published private(set) var inspectorErrorMessage = ""
@@ -40,10 +71,23 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
     func prepare() async {
         guard !loadedOnce else { return }
         loadedOnce = true
+        #if DEBUG && targetEnvironment(simulator)
+        consentTestBusy = true
+        defer { consentTestBusy = false }
+        #endif
         status("Checking UMP consent")
         do {
-            try await ConsentInformation.shared.requestConsentInfoUpdate(with: RequestParameters())
+            let parameters = RequestParameters()
+            #if DEBUG && targetEnvironment(simulator)
+            let debugSettings = DebugSettings()
+            debugSettings.geography = .EEA
+            parameters.debugSettings = debugSettings
+            #endif
+            try await ConsentInformation.shared.requestConsentInfoUpdate(with: parameters)
             try await ConsentForm.loadAndPresentIfRequired(from: nil)
+            #if DEBUG && targetEnvironment(simulator)
+            logConsentTest()
+            #endif
         } catch {
             status("UMP error: \(error.localizedDescription)")
         }
@@ -52,8 +96,16 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
     }
 
     func privacyOptions() async {
+        #if DEBUG && targetEnvironment(simulator)
+        guard !consentTestBusy else { return }
+        consentTestBusy = true
+        defer { consentTestBusy = false }
+        #endif
         do {
             try await ConsentForm.presentPrivacyOptionsForm(from: nil)
+            #if DEBUG && targetEnvironment(simulator)
+            logConsentTest()
+            #endif
             ad = nil
             loader = nil
             updatePrivacyState()
@@ -68,6 +120,9 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
     }
 
     private func requestAd() async {
+        #if DEBUG && targetEnvironment(simulator)
+        print("[Fewy Consent Test] Request gate: canRequestAds=\(ConsentInformation.shared.canRequestAds)")
+        #endif
         guard ConsentInformation.shared.canRequestAds else {
             if !diagnostic.hasPrefix("UMP error:") { status("UMP does not allow an ad request yet") }
             return
@@ -79,7 +134,12 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
               !unit.isEmpty else { return }
         #endif
         await MobileAds.shared.start()
-        guard ConsentInformation.shared.canRequestAds, !Task.isCancelled else { return }
+        guard ConsentInformation.shared.canRequestAds, !Task.isCancelled else {
+            #if DEBUG && targetEnvironment(simulator)
+            print("[Fewy Consent Test] Native request skipped after SDK start: canRequestAds=\(ConsentInformation.shared.canRequestAds), cancelled=\(Task.isCancelled)")
+            #endif
+            return
+        }
         let loader = AdLoader(adUnitID: unit, rootViewController: nil, adTypes: [.native], options: nil)
         self.loader = loader
         loader.delegate = self
@@ -112,6 +172,10 @@ struct FewyAdSection: View {
                         .frame(height: 250)
                 }
             }
+            #if DEBUG && targetEnvironment(simulator)
+            Button("Reset consent test") { Task { await ads.resetConsentTest() } }
+                .disabled(ads.consentTestBusy)
+            #endif
             #if DEBUG
             Text("Ad test: " + ads.diagnostic).font(.footnote).foregroundStyle(.secondary)
             Button("Open Ad Inspector") { ads.openAdInspector() }
