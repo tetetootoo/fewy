@@ -10,15 +10,24 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
     @Published var privacyError = false
     private var loader: AdLoader?
     private var loadedOnce = false
+    @Published private(set) var diagnostic = "Waiting to check consent"
+
+    private func status(_ message: String) {
+        #if DEBUG
+        diagnostic = message
+        print("[Fewy Ads] " + message)
+        #endif
+    }
 
     func prepare() async {
         guard !loadedOnce else { return }
         loadedOnce = true
+        status("Checking UMP consent")
         do {
             try await ConsentInformation.shared.requestConsentInfoUpdate(with: RequestParameters())
             try await ConsentForm.loadAndPresentIfRequired(from: nil)
         } catch {
-            // UMP may still have a valid choice from a previous session.
+            status("UMP error: \(error.localizedDescription)")
         }
         updatePrivacyState()
         await requestAd()
@@ -41,7 +50,10 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
     }
 
     private func requestAd() async {
-        guard ConsentInformation.shared.canRequestAds else { return }
+        guard ConsentInformation.shared.canRequestAds else {
+            if !diagnostic.hasPrefix("UMP error:") { status("UMP does not allow an ad request yet") }
+            return
+        }
         #if DEBUG
         let unit = "ca-app-pub-3940256099942544/3986624511"
         #else
@@ -53,16 +65,20 @@ final class FewyAds: NSObject, ObservableObject, NativeAdLoaderDelegate {
         let loader = AdLoader(adUnitID: unit, rootViewController: nil, adTypes: [.native], options: nil)
         self.loader = loader
         loader.delegate = self
+        status("Requesting native ad")
         loader.load(Request())
     }
 
     func adLoader(_ adLoader: AdLoader, didReceive nativeAd: NativeAd) {
         guard adLoader === loader, ConsentInformation.shared.canRequestAds else { return }
+        status("Native ad loaded")
         ad = nativeAd
     }
 
     func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: Error) {
         guard adLoader === loader else { return }
+        let failure = error as NSError
+        status("Load failed [\(failure.domain) \(failure.code)]: \(failure.localizedDescription)")
         ad = nil
     }
 }
@@ -78,11 +94,16 @@ struct FewyAdSection: View {
                         .frame(height: 250)
                 }
             }
+            #if DEBUG
+            Text("Ad test: " + ads.diagnostic).font(.footnote).foregroundStyle(.secondary)
+            #endif
+            Color.clear.frame(height: 0).listRowInsets(EdgeInsets()).listRowSeparator(.hidden)
+                .accessibilityHidden(true)
+                .task { await ads.prepare() }
             if ads.showPrivacyOptions {
                 Button("Ad privacy options") { Task { await ads.privacyOptions() } }
             }
         }
-        .task { await ads.prepare() }
         .alert("Couldn’t open ad privacy options", isPresented: $ads.privacyError) {
             Button("OK", role: .cancel) {}
         }
